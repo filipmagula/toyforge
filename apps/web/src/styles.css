@@ -1,0 +1,31 @@
+@import 'tailwindcss';
+@import '@fontsource/fredoka/400.css';
+@import '@fontsource/fredoka/500.css';
+@import '@fontsource/fredoka/600.css';
+@import '@fontsource/fredoka/700.css';
+
+@theme {
+  --font-sans: 'Fredoka', ui-rounded, system-ui, sans-serif;
+}
+
+html, body { height: 100%; }
+body { background-color: #f0f9ff; color: #1e293b; -webkit-tap-highlight-color: transparent; }
+body.builder { overflow: hidden; user-select: none; -webkit-user-select: none; overscroll-behavior: none; }
+input, textarea { user-select: text; -webkit-user-select: text; }
+
+.toy-btn { transition: transform 0.1s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.1s ease; }
+.toy-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2) !important; }
+
+input[type='range'] { -webkit-appearance: none; appearance: none; height: 12px; border-radius: 8px; background: #bae6fd; touch-action: pan-x; }
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 24px; height: 24px; border-radius: 50%;
+  background: #f59e0b; border: 3px solid #fff; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25); cursor: pointer;
+}
+input[type='range']::-moz-range-thumb {
+  width: 24px; height: 24px; border-radius: 50%; background: #f59e0b; border: 3px solid #fff;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25); cursor: pointer;
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #e0f2fe; border-radius: 10px; }
+::-webkit-scrollbar-thumb { background: #7dd3fc; border-radius: 10px; }
