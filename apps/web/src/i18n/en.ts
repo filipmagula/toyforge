@@ -17,7 +17,7 @@ export const en = {
   // Viewport
   'view.hint': 'Drag to spin • Pinch to zoom',
   'view.hintShort': 'Spin & zoom',
-  'builder.finish': 'Finish & 3D Print!',
+  'builder.finish': 'Finish & Send!',
 
   // Panel
   'panel.colorFor': '{part} colour',

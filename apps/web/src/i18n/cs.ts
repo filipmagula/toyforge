@@ -17,7 +17,7 @@ export const cs: Messages = {
 
   'view.hint': 'Táhni pro otočení • Roztáhni prsty pro přiblížení',
   'view.hintShort': 'Otáčej a přibližuj',
-  'builder.finish': 'Hotovo – tisknout!',
+  'builder.finish': 'Hotovo – odešli!',
 
   'panel.colorFor': 'Barva: {part}',
   'panel.colorHint': 'Barva jen pro náhled',

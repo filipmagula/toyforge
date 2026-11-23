@@ -17,7 +17,7 @@ export const pl: Messages = {
 
   'view.hint': 'Przeciągnij, by obrócić • Rozsuń palce, by przybliżyć',
   'view.hintShort': 'Obracaj i przybliżaj',
-  'builder.finish': 'Gotowe – drukuj!',
+  'builder.finish': 'Gotowe – wysyłaj!',
 
   'panel.colorFor': 'Kolor: {part}',
   'panel.colorHint': 'Kolor tylko do podglądu',
