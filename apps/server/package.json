@@ -1,0 +1,33 @@
+{
+  "name": "@toyforge/server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "build": "esbuild src/main.ts --bundle --platform=node --target=node22 --format=esm --packages=external --alias:@toyforge/shared=../../packages/shared/src/index.ts --banner:js=\"import{createRequire}from'module';const require=createRequire(import.meta.url);\" --outfile=dist/main.js",
+    "test": "vitest run",
+    "typecheck": "tsc -p . --noEmit"
+  },
+  "devDependencies": {
+    "@types/archiver": "^8.0.0",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^22.20.5",
+    "@types/yauzl": "^3.4.0",
+    "esbuild": "^0.28.2",
+    "form-data-encoder": "^4.1.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vitest": "^5.1.1",
+    "yauzl": "^3.4.0"
+  },
+  "dependencies": {
+    "@fastify/multipart": "^10.1.9",
+    "@fastify/rate-limit": "^11.3.0",
+    "@fastify/static": "^10.1.12",
+    "archiver": "^8.0.0",
+    "better-sqlite3": "^13.2.0",
+    "fastify": "^5.12.8",
+    "@toyforge/shared": "*"
+  }
+}
