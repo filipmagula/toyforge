@@ -15,5 +15,5 @@ export default defineConfig({
     },
   },
   server: { proxy: { '/api': 'http://localhost:3000' } },
-  test: { environment: 'node', include: ['test/**/*.test.ts'] },
+  test: { environment: 'node', include: ['test/**/*.test.ts'], exclude: ['e2e/**'] },
 });

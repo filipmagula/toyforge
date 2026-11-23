@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ToyForge 3D - Kid Character Maker & STL Exporter</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js & OrbitControls & STLExporter -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/STLExporter.js"></script>
+    <!-- Google Fonts: Fredoka for a fun, toy-like feel -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for playful icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Fredoka', sans-serif;
+            overflow: hidden;
+            user-select: none;
+            background-color: #f0f9ff;
+        }
+        /* Custom playful scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #e0f2fe;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #7dd3fc;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #38bdf8;
+        }
+        .toy-btn {
+            transition: transform 0.1s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.1s ease;
+        }
+        .toy-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 rgba(0,0,0,0.2) !important;
+        }
+        /* Larger touch-friendly slider thumb for tablets & phones */
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #f59e0b;
+            border: 3px solid #ffffff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.25);
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #f59e0b;
+            border: 3px solid #ffffff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.25);
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col md:flex-row text-slate-800">
+
+    <!-- LEFT / TOP: 3D Interactive Viewport -->
+    <div class="relative w-full h-[46%] md:w-3/5 lg:w-2/3 md:h-full bg-gradient-to-b from-sky-200 via-sky-100 to-indigo-100 flex flex-col">
+        
+        <!-- Header Overlay -->
+        <div class="absolute top-2.5 left-2.5 right-2.5 md:top-4 md:left-4 md:right-4 z-10 flex flex-wrap justify-between items-center pointer-events-none gap-1.5 md:gap-2">
+            <!-- Brand & Maker Name Input -->
+            <div class="bg-white/95 backdrop-blur-md px-2.5 py-1.5 md:px-4 md:py-2 rounded-xl md:rounded-2xl shadow-lg border-2 border-sky-300 pointer-events-auto flex items-center gap-2 md:gap-3">
+                <div class="bg-amber-400 text-white w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl flex items-center justify-center text-base md:text-xl shadow-inner shrink-0">
+                    <i class="fa-solid fa-cubes"></i>
+                </div>
+                <div class="hidden sm:block">
+                    <h1 class="text-lg md:text-xl font-bold text-sky-900 leading-none">ToyForge 3D</h1>
+                    <p class="text-[11px] text-sky-600 font-medium">Build & Print Your Creature!</p>
+                </div>
+                <!-- Mandatory Maker Name Field -->
+                <div class="flex items-center bg-sky-50 border-2 border-sky-200 focus-within:border-amber-400 rounded-lg md:rounded-xl px-2 py-1">
+                    <i class="fa-solid fa-user-astronaut text-sky-500 text-xs md:text-sm mr-1.5"></i>
+                    <input type="text" id="maker-name-input" maxlength="20" placeholder="Your Name *"
+                        oninput="updateMakerName(this.value)"
+                        class="bg-transparent text-xs md:text-sm font-bold text-slate-800 placeholder-slate-400 focus:outline-none w-24 sm:w-32 md:w-36">
+                </div>
+            </div>
+
+            <!-- Quick Action Buttons -->
+            <div class="flex gap-1.5 md:gap-2 pointer-events-auto">
+                <button onclick="resetToDummy()" class="toy-btn bg-sky-500 hover:bg-sky-600 text-white font-bold py-1.5 px-2.5 md:py-2.5 md:px-4 rounded-xl md:rounded-2xl shadow-[0_3px_0_#0369a1] md:shadow-[0_4px_0_#0369a1] flex items-center gap-1.5 text-xs md:text-base" title="Reset back to a simple blank figure">
+                    <i class="fa-solid fa-rotate-left text-sm md:text-lg"></i>
+                    <span class="hidden sm:inline">Blank</span>
+                </button>
+                <button onclick="randomizeCharacter()" class="toy-btn bg-purple-500 hover:bg-purple-600 text-white font-bold py-1.5 px-2.5 md:py-2.5 md:px-4 rounded-xl md:rounded-2xl shadow-[0_3px_0_#6b21a8] md:shadow-[0_4px_0_#6b21a8] flex items-center gap-1.5 text-xs md:text-base">
+                    <i class="fa-solid fa-dice text-sm md:text-lg"></i>
+                    <span class="hidden sm:inline">Mix!</span>
+                </button>
+                <button onclick="toggleBase()" id="btn-base" class="toy-btn bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-1.5 px-2.5 md:py-2.5 md:px-4 rounded-xl md:rounded-2xl shadow-[0_3px_0_#065f46] md:shadow-[0_4px_0_#065f46] flex items-center gap-1.5 text-xs md:text-base" title="Adds a flat stand so your 3D print won't fall over!">
+                    <i class="fa-solid fa-circle-dot"></i>
+                    <span class="hidden sm:inline">Base: ON</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 3D Canvas Container -->
+        <div id="canvas-container" class="w-full h-full cursor-grab active:cursor-grabbing"></div>
+
+        <!-- Camera Helper Pill & Finish/Export Button -->
+        <div class="absolute bottom-2.5 left-2.5 right-2.5 md:bottom-4 md:left-4 md:right-4 z-10 flex justify-between items-end pointer-events-none gap-2">
+            <div class="bg-white/85 backdrop-blur px-2.5 py-1 rounded-lg md:rounded-xl text-[11px] md:text-xs font-medium text-slate-600 shadow border border-white flex items-center gap-1.5">
+                <i class="fa-solid fa-hand-pointer text-sky-500"></i>
+                <span class="hidden sm:inline">Drag to spin • Pinch/Scroll to zoom</span>
+                <span class="sm:hidden">Spin & Zoom</span>
+            </div>
+
+            <!-- Finish / Export / Submit Trigger -->
+            <button onclick="openFinishModal()" class="toy-btn pointer-events-auto bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white font-bold py-2 px-4 md:py-3 md:px-6 rounded-xl md:rounded-2xl shadow-[0_4px_0_#c2410c] md:shadow-[0_5px_0_#c2410c] flex items-center gap-2 text-xs sm:text-sm md:text-lg">
+                <i class="fa-solid fa-rocket text-sm md:text-xl"></i>
+                <span>Finish & 3D Print!</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- RIGHT / BOTTOM: Tablet-First & Mobile-Compact Builder Panel -->
+    <div class="w-full h-[54%] md:w-2/5 lg:w-1/3 md:h-full bg-white border-t-4 md:border-t-0 md:border-l-4 border-sky-200 flex flex-col shadow-2xl z-20">
+        
+        <!-- Maker Badge Bar (Shown when name is entered) -->
+        <div id="maker-bar" class="px-2.5 py-1.5 bg-sky-50 border-b border-sky-100 hidden justify-between items-center shrink-0">
+            <span class="text-[10px] md:text-xs font-bold uppercase tracking-wider text-sky-600">Workshop Mode</span>
+            <span id="maker-badge" class="text-[10px] md:text-xs font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full"></span>
+        </div>
+
+        <!-- Category Tabs -->
+        <div class="flex overflow-x-auto bg-slate-100 p-1 md:p-1.5 gap-1 md:gap-1.5 border-b border-slate-200 shrink-0" id="category-tabs">
+            <!-- Tabs populated by JS -->
+        </div>
+
+        <!-- Active Category Options Area -->
+        <div class="flex-1 overflow-y-auto p-2.5 md:p-4 space-y-3 md:space-y-5" id="options-container">
+            <!-- Controls populated by JS -->
+        </div>
+
+        <!-- Color Picker Footer -->
+        <div class="px-2.5 py-2 md:p-3 bg-slate-50 border-t-2 border-slate-200 shrink-0">
+            <div class="flex items-center justify-between mb-1">
+                <span class="text-[11px] md:text-xs font-bold uppercase tracking-wider text-slate-500" id="color-label">Part Color</span>
+                <span class="text-[10px] md:text-xs text-slate-400">Preview color</span>
+            </div>
+            <div class="flex gap-1.5 md:gap-2 overflow-x-auto pb-0.5" id="color-swatches">
+                <!-- Swatches populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Finish / Name Validation / Export & Queue Modal -->
+    <div id="finish-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-3 md:p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-5 md:p-6 shadow-2xl border-4 border-amber-400 text-center">
+            <div class="w-14 h-14 bg-amber-100 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl md:text-3xl">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+            <h2 class="text-xl md:text-2xl font-bold text-slate-800 mb-1">Ready for 3D Printing!</h2>
+            <p class="text-slate-500 text-xs md:text-sm mb-4">Tell us who made this awesome creation:</p>
+            
+            <!-- Mandatory Maker Name & Optional Character Title -->
+            <div class="space-y-2.5 text-left mb-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">
+                        Your Name <span class="text-rose-500">* (Required)</span>
+                    </label>
+                    <input type="text" id="modal-maker-name" maxlength="20" placeholder="e.g., Lukas, Maya, Max..."
+                        class="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:border-sky-500 focus:outline-none font-bold text-slate-800 text-sm">
+                    <p id="name-error-msg" class="text-rose-500 text-xs font-bold mt-1 hidden">
+                        <i class="fa-solid fa-circle-exclamation"></i> Please enter your name first!
+                    </p>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">
+                        Character Name <span class="text-slate-400 font-normal">(Optional)</span>
+                    </label>
+                    <input type="text" id="modal-char-name" maxlength="24" placeholder="e.g., Captain Tentacle"
+                        class="w-full px-3.5 py-2 rounded-xl border-2 border-slate-200 focus:border-sky-500 focus:outline-none font-medium text-slate-700 text-sm">
+                </div>
+            </div>
+
+            <!-- Action Buttons: Download STL & Save to Local Print Queue (Server-Ready) -->
+            <div class="space-y-2.5 mb-3">
+                <button onclick="handleExportSTL()" class="toy-btn w-full bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white font-bold py-3 rounded-xl shadow-[0_4px_0_#c2410c] flex items-center justify-center gap-2 text-sm md:text-base">
+                    <i class="fa-solid fa-download"></i>
+                    <span>Download 3D File (.STL)</span>
+                </button>
+                <button onclick="handleSaveToQueue()" class="toy-btn w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 rounded-xl shadow-[0_4px_0_#065f46] flex items-center justify-center gap-2 text-xs md:text-sm">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    <span>Save to Workshop Queue (<span id="queue-count">0</span> saved)</span>
+                </button>
+            </div>
+
+            <div id="modal-feedback" class="hidden bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl p-2.5 text-xs font-medium mb-3"></div>
+
+            <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xs py-1">
+                ← Back to Editor
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. STATE & CONFIGURATION
+        // ==========================================
+        const COLORS = [
+            { name: 'Robot Silver', hex: '#cbd5e1' },
+            { name: 'Sky Blue', hex: '#38bdf8' },
+            { name: 'Hero Red', hex: '#f43f5e' },
+            { name: 'Sunny Yellow', hex: '#facc15' },
+            { name: 'Slime Green', hex: '#4ade80' },
+            { name: 'Monster Purple', hex: '#a855f7' },
+            { name: 'Tangerine', hex: '#fb923c' },
+            { name: 'Peach Skin', hex: '#fed7aa' },
+            { name: 'Warm Brown', hex: '#92400e' },
+            { name: 'Midnight Dark', hex: '#334155' },
+            { name: 'Snow White', hex: '#f8fafc' },
+            { name: 'Bubblegum Pink', hex: '#f472b6' }
+        ];
+
+        // Character Configuration State (Starts as a clean, simple blank dummy figure)
+        let charState = {
+            makerName: '',
+            characterName: '',
+
+            // Proportions
+            headScale: 1.0,
+            bodyScale: 1.0,
+            includeBase: true,
+
+            // Parts & Styles (Simple minimal dummy defaults)
+            headShape: 'sphere',     // cube, sphere, cylinder, tv, blob, dino
+            eyesStyle: 'round',      // round, blocky, visor, cyclops, star, threeEyes, googly
+            mouthStyle: 'smile',     // smile, grille, blocky, open, mustache, fangs
+            noseStyle: 'none',       // none, button, block, carrot, snout, trunk
+            sideEarsStyle: 'none',   // none, human, elf, cat, dog, robotDish
+            hairStyle: 'none',       // none, spiky, afro, buns, mohawk
+            hatStyle: 'none',        // none, antenna, crown, cap, ears, helmet, bunnyEars, horns
+            
+            bodyShape: 'human',      // robot, human, blocky, armor, chubby
+            backpackStyle: 'none',   // none, jetpack, cape, wings, shell, dinoTail
+            
+            armsStyle: 'human',      // human, blocky, claw, tube, tentacles
+            rightHandItem: 'none',   // none, sword, wand, shield, blaster, icecream, wrench
+            leftHandItem: 'none',    // none, sword, wand, shield, blaster, icecream, wrench
+            
+            legsStyle: 'human',      // human, blocky, wheel, springs, tentacles
+            feetStyle: 'shoes',      // shoes, blocky, boots, flippers, paws
+
+            // Neutral Mannequin / Clay Colors
+            colors: {
+                head: '#e2e8f0',
+                face: '#334155',
+                hat: '#facc15',
+                body: '#cbd5e1',
+                backpack: '#94a3b8',
+                arms: '#e2e8f0',
+                items: '#facc15',
+                legs: '#94a3b8',
+                feet: '#64748b',
+                base: '#94a3b8'
+            }
+        };
+
+        // Client-side staging queue (ready for future server sync)
+        let localSubmissionQueue = [];
+
+        // UI Categories Definition
+        const CATEGORIES = [
+            { id: 'head', label: 'Head', icon: 'fa-face-smile', colorKey: 'head' },
+            { id: 'face', label: 'Face & Ears', icon: 'fa-eyes', colorKey: 'face' },
+            { id: 'hat', label: 'Hair & Hats', icon: 'fa-crown', colorKey: 'hat' },
+            { id: 'body', label: 'Body', icon: 'fa-shirt', colorKey: 'body' },
+            { id: 'back', label: 'Back & Tail', icon: 'fa-jet-fighter-up', colorKey: 'backpack' },
+            { id: 'arms', label: 'Arms', icon: 'fa-hand', colorKey: 'arms' },
+            { id: 'items', label: 'Gear', icon: 'fa-wand-magic-sparkles', colorKey: 'items' },
+            { id: 'legs', label: 'Legs & Feet', icon: 'fa-shoe-prints', colorKey: 'legs' }
+        ];
+
+        let activeCategory = 'head';
+
+        // ==========================================
+        // 2. THREE.JS SCENE SETUP
+        // ==========================================
+        let scene, camera, renderer, controls, characterGroup, gridHelper;
+
+        function initThree() {
+            const container = document.getElementById('canvas-container');
+            
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0xe0f2fe, 0.015);
+
+            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(0, 7, 18);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // OrbitControls for Tablet & Phone Touch Rotation
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.07;
+            controls.target.set(0, 4.5, 0);
+            controls.minDistance = 7;
+            controls.maxDistance = 35;
+            controls.maxPolarAngle = Math.PI / 2 + 0.1;
+
+            // Studio Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
+            dirLight.position.set(10, 20, 15);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 1024;
+            dirLight.shadow.mapSize.height = 1024;
+            scene.add(dirLight);
+
+            const fillLight = new THREE.DirectionalLight(0xbae6fd, 0.4);
+            fillLight.position.set(-10, 8, -10);
+            scene.add(fillLight);
+
+            // Build Plate / 3D Printer Bed Visual Reference
+            const bedGeo = new THREE.CylinderGeometry(6, 6, 0.2, 48);
+            const bedMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8 });
+            const bedMesh = new THREE.Mesh(bedGeo, bedMat);
+            bedMesh.position.y = -0.1;
+            bedMesh.receiveShadow = true;
+            scene.add(bedMesh);
+
+            gridHelper = new THREE.GridHelper(12, 12, 0x38bdf8, 0xcbd5e1);
+            gridHelper.position.y = 0.01;
+            scene.add(gridHelper);
+
+            characterGroup = new THREE.Group();
+            scene.add(characterGroup);
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('canvas-container');
+            if (!container) return;
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        // ==========================================
+        // 3. PROCEDURAL 3D CHARACTER & MONSTER BUILDER
+        // ==========================================
+        function getMat(hexColor) {
+            return new THREE.MeshStandardMaterial({
+                color: new THREE.Color(hexColor),
+                roughness: 0.45,
+                metalness: 0.1
+            });
+        }
+
+        function addMesh(parent, geometry, material, pos = [0,0,0], rot = [0,0,0], scale = [1,1,1]) {
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(...pos);
+            mesh.rotation.set(...rot);
+            mesh.scale.set(...scale);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            parent.add(mesh);
+            return mesh;
+        }
+
+        function rebuildCharacter() {
+            while (characterGroup.children.length > 0) {
+                characterGroup.remove(characterGroup.children[0]);
+            }
+
+            const mHead = getMat(charState.colors.head);
+            const mFace = getMat(charState.colors.face);
+            const mHat = getMat(charState.colors.hat);
+            const mBody = getMat(charState.colors.body);
+            const mBack = getMat(charState.colors.backpack);
+            const mArms = getMat(charState.colors.arms);
+            const mItems = getMat(charState.colors.items);
+            const mLegs = getMat(charState.colors.legs);
+            const mFeet = getMat(charState.colors.feet);
+            const mBase = getMat(charState.colors.base);
+
+            let currentY = 0;
+
+            // 0. PRINTABLE STAND BASE
+            if (charState.includeBase) {
+                addMesh(characterGroup, new THREE.CylinderGeometry(2.4, 2.6, 0.35, 32), mBase, [0, 0.175, 0]);
+                currentY = 0.3;
+            }
+
+            // 1. FEET (Skipped if using octopus tentacles)
+            const footH = 0.6;
+            const legSpacing = 0.75;
+            if (charState.legsStyle !== 'tentacles') {
+                [-legSpacing, legSpacing].forEach(xPos => {
+                    if (charState.feetStyle === 'blocky') {
+                        addMesh(characterGroup, new THREE.BoxGeometry(0.95, footH + 0.1, 1.3), mFeet, [xPos, currentY + (footH+0.1)/2 - 0.05, 0.15]);
+                    } else if (charState.feetStyle === 'boots') {
+                        addMesh(characterGroup, new THREE.CylinderGeometry(0.5, 0.55, footH + 0.25, 16), mFeet, [xPos, currentY + (footH+0.25)/2 - 0.05, 0]);
+                        addMesh(characterGroup, new THREE.SphereGeometry(0.52, 16, 12), mFeet, [xPos, currentY + 0.32, 0.3]);
+                    } else if (charState.feetStyle === 'flippers') {
+                        addMesh(characterGroup, new THREE.BoxGeometry(1.1, 0.35, 1.9), mFeet, [xPos, currentY + 0.12, 0.45]);
+                    } else if (charState.feetStyle === 'paws') {
+                        addMesh(characterGroup, new THREE.SphereGeometry(0.58, 16, 12), mFeet, [xPos, currentY + 0.28, 0.22], [0, 0, 0], [1.1, 0.65, 1.35]);
+                        [-0.26, 0, 0.26].forEach(toeX => {
+                            addMesh(characterGroup, new THREE.SphereGeometry(0.2, 12, 10), mHat, [xPos + toeX, currentY + 0.2, 0.72]);
+                        });
+                    } else { // shoes
+                        addMesh(characterGroup, new THREE.BoxGeometry(0.85, footH + 0.1, 1.35), mFeet, [xPos, currentY + (footH+0.1)/2 - 0.05, 0.2]);
+                        addMesh(characterGroup, new THREE.SphereGeometry(0.43, 16, 12), mFeet, [xPos, currentY + 0.28, 0.7]);
+                    }
+                });
+                currentY += footH - 0.15;
+            }
+
+            // 2. LEGS (Solid continuous joints into feet & torso)
+            const legH = 1.95;
+            if (charState.legsStyle === 'wheel') {
+                addMesh(characterGroup, new THREE.CylinderGeometry(0.9, 0.9, 1.6, 24), mLegs, [0, currentY + 0.7, 0], [0, 0, Math.PI/2]);
+                addMesh(characterGroup, new THREE.CylinderGeometry(0.65, 0.85, 1.5, 16), mLegs, [0, currentY + 1.35, 0]);
+            } else if (charState.legsStyle === 'tentacles') {
+                const tentacleCount = 6;
+                for (let i = 0; i < tentacleCount; i++) {
+                    const angle = (i / tentacleCount) * Math.PI * 2;
+                    const tGroup = new THREE.Group();
+                    tGroup.position.set(0, currentY - 0.05, 0);
+                    tGroup.rotation.y = angle;
+                    characterGroup.add(tGroup);
+
+                    addMesh(tGroup, new THREE.CylinderGeometry(0.42, 0.3, 1.45, 14), mLegs, [0.48, 1.35, 0], [0, 0, -0.35]);
+                    addMesh(tGroup, new THREE.SphereGeometry(0.31, 12, 10), mLegs, [0.72, 0.72, 0]);
+                    addMesh(tGroup, new THREE.CylinderGeometry(0.3, 0.18, 1.3, 14), mLegs, [1.1, 0.42, 0], [0, 0, -1.1]);
+                    addMesh(tGroup, new THREE.SphereGeometry(0.22, 12, 10), mFeet, [1.62, 0.2, 0]);
+                }
+                addMesh(characterGroup, new THREE.SphereGeometry(1.05, 18, 14), mLegs, [0, currentY + 1.85, 0]);
+            } else {
+                [-legSpacing, legSpacing].forEach(xPos => {
+                    if (charState.legsStyle === 'blocky') {
+                        addMesh(characterGroup, new THREE.BoxGeometry(0.85, legH, 0.85), mLegs, [xPos, currentY + legH/2 - 0.05, 0]);
+                    } else if (charState.legsStyle === 'springs') {
+                        addMesh(characterGroup, new THREE.CylinderGeometry(0.34, 0.34, legH, 14), mLegs, [xPos, currentY + legH/2 - 0.05, 0]);
+                        for (let i = 0; i < 4; i++) {
+                            addMesh(characterGroup, new THREE.TorusGeometry(0.34, 0.15, 10, 20), mLegs, [xPos, currentY + 0.25 + i*0.42, 0], [Math.PI/2, 0, 0]);
+                        }
+                    } else { // human
+                        addMesh(characterGroup, new THREE.CylinderGeometry(0.44, 0.38, legH, 16), mLegs, [xPos, currentY + legH/2 - 0.05, 0]);
+                    }
+                });
+            }
+            currentY += (charState.legsStyle === 'tentacles' ? 2.0 : legH - 0.25);
+
+            // 3. BODY / TORSO
+            const torsoGroup = new THREE.Group();
+            torsoGroup.position.set(0, currentY, 0);
+            const bScale = charState.bodyScale;
+            torsoGroup.scale.set(bScale, bScale, bScale);
+            characterGroup.add(torsoGroup);
+
+            const bodyH = 2.35;
+            if (charState.bodyShape === 'blocky') {
+                addMesh(torsoGroup, new THREE.BoxGeometry(2.2, bodyH, 1.2), mBody, [0, bodyH/2, 0]);
+            } else if (charState.bodyShape === 'robot') {
+                addMesh(torsoGroup, new THREE.BoxGeometry(2.3, bodyH, 1.4), mBody, [0, bodyH/2, 0]);
+                addMesh(torsoGroup, new THREE.BoxGeometry(1.3, 0.9, 0.3), mFace, [0, bodyH*0.58, 0.62]);
+                addMesh(torsoGroup, new THREE.CylinderGeometry(0.18, 0.18, 0.3, 16), mHat, [-0.35, bodyH*0.58, 0.72], [Math.PI/2, 0, 0]);
+                addMesh(torsoGroup, new THREE.CylinderGeometry(0.18, 0.18, 0.3, 16), mFeet, [0.35, bodyH*0.58, 0.72], [Math.PI/2, 0, 0]);
+            } else if (charState.bodyShape === 'armor') {
+                addMesh(torsoGroup, new THREE.CylinderGeometry(1.3, 0.95, bodyH, 8), mBody, [0, bodyH/2, 0]);
+                addMesh(torsoGroup, new THREE.SphereGeometry(0.68, 16, 12), mHat, [-1.15, bodyH - 0.25, 0]);
+                addMesh(torsoGroup, new THREE.SphereGeometry(0.68, 16, 12), mHat, [1.15, bodyH - 0.25, 0]);
+            } else if (charState.bodyShape === 'chubby') {
+                addMesh(torsoGroup, new THREE.SphereGeometry(1.42, 24, 18), mBody, [0, bodyH*0.5, 0], [0, 0, 0], [1.05, 0.92, 0.95]);
+                addMesh(torsoGroup, new THREE.SphereGeometry(1.05, 20, 16), mHat, [0, bodyH*0.48, 0.44], [0, 0, 0], [0.85, 0.8, 0.65]);
+            } else { // human
+                addMesh(torsoGroup, new THREE.CylinderGeometry(1.08, 0.92, bodyH, 20), mBody, [0, bodyH/2, 0]);
+                addMesh(torsoGroup, new THREE.SphereGeometry(1.08, 20, 12), mBody, [0, bodyH - 0.3, 0], [0,0,0], [1, 0.45, 0.75]);
+            }
+
+            // 4. BACKPACK / CAPE / WINGS / DINO TAIL
+            if (charState.backpackStyle === 'jetpack') {
+                addMesh(torsoGroup, new THREE.BoxGeometry(1.45, 1.1, 0.95), mBack, [0, bodyH*0.55, -0.45]);
+                [-0.45, 0.45].forEach(bx => {
+                    addMesh(torsoGroup, new THREE.CylinderGeometry(0.36, 0.36, 1.6, 16), mBack, [bx, bodyH*0.55, -0.78]);
+                    addMesh(torsoGroup, new THREE.ConeGeometry(0.36, 0.52, 16), mBack, [bx, bodyH*0.55 + 0.98, -0.78]);
+                    addMesh(torsoGroup, new THREE.CylinderGeometry(0.26, 0.4, 0.38, 16), mHat, [bx, bodyH*0.55 - 0.88, -0.78]);
+                });
+            } else if (charState.backpackStyle === 'cape') {
+                addMesh(torsoGroup, new THREE.BoxGeometry(1.85, 0.4, 0.7), mBack, [0, bodyH*0.86, -0.42]);
+                addMesh(torsoGroup, new THREE.BoxGeometry(1.9, 2.35, 0.28), mBack, [0, bodyH*0.45, -0.68], [0.16, 0, 0]);
+            } else if (charState.backpackStyle === 'wings') {
+                addMesh(torsoGroup, new THREE.BoxGeometry(0.9, 1.1, 0.85), mBack, [0, bodyH*0.55, -0.42]);
+                [-1, 1].forEach(dir => {
+                    addMesh(torsoGroup, new THREE.BoxGeometry(1.85, 0.9, 0.26), mBack, [dir * 1.15, bodyH*0.65, -0.58], [0, -dir * 0.22, dir * 0.22]);
+                    addMesh(torsoGroup, new THREE.BoxGeometry(1.35, 0.65, 0.26), mBack, [dir * 0.9, bodyH*0.36, -0.58], [0, -dir * 0.22, -dir * 0.15]);
+                });
+            } else if (charState.backpackStyle === 'shell') {
+                addMesh(torsoGroup, new THREE.SphereGeometry(1.3, 20, 16), mBack, [0, bodyH*0.5, -0.35], [0, 0, 0], [0.95, 1.1, 0.8]);
+            } else if (charState.backpackStyle === 'dinoTail') {
+                addMesh(torsoGroup, new THREE.ConeGeometry(0.75, 2.6, 16), mBack, [0, 0.62, -1.05], [-1.15, 0, 0]);
+                addMesh(torsoGroup, new THREE.ConeGeometry(0.24, 0.5, 8), mHat, [0, 0.95, -1.05], [-0.4, 0, 0]);
+                addMesh(torsoGroup, new THREE.ConeGeometry(0.2, 0.45, 8), mHat, [0, 0.75, -1.6], [-0.4, 0, 0]);
+            }
+
+            // 5. ARMS & HANDS & HELD GEAR
+            [-1, 1].forEach(side => {
+                const armX = side * 1.25;
+                const shoulderY = bodyH - 0.38;
+                const armGroup = new THREE.Group();
+                armGroup.position.set(armX, shoulderY, 0);
+                armGroup.rotation.set(-0.35, 0, side * -0.18);
+                torsoGroup.add(armGroup);
+
+                addMesh(armGroup, new THREE.SphereGeometry(0.45, 16, 12), mArms, [0, 0, 0]);
+
+                const armLen = 1.65;
+                if (charState.armsStyle === 'blocky') {
+                    addMesh(armGroup, new THREE.BoxGeometry(0.7, armLen, 0.7), mArms, [0, -armLen/2 + 0.15, 0]);
+                } else if (charState.armsStyle === 'claw') {
+                    addMesh(armGroup, new THREE.CylinderGeometry(0.34, 0.34, armLen - 0.2, 16), mArms, [0, -(armLen-0.2)/2 + 0.15, 0]);
+                    addMesh(armGroup, new THREE.TorusGeometry(0.35, 0.14, 10, 20, Math.PI * 1.4), mFeet, [0, -armLen + 0.12, 0], [0, Math.PI/2, Math.PI*0.8]);
+                } else if (charState.armsStyle === 'tube') {
+                    addMesh(armGroup, new THREE.CylinderGeometry(0.36, 0.36, armLen, 16), mArms, [0, -armLen/2 + 0.15, 0]);
+                } else if (charState.armsStyle === 'tentacles') {
+                    addMesh(armGroup, new THREE.CylinderGeometry(0.36, 0.26, 1.0, 14), mArms, [side * 0.12, -0.42, 0], [0, 0, side * 0.25]);
+                    addMesh(armGroup, new THREE.SphereGeometry(0.27, 12, 10), mArms, [side * 0.22, -0.88, 0.05]);
+                    addMesh(armGroup, new THREE.CylinderGeometry(0.26, 0.14, 0.95, 14), mArms, [side * 0.1, -1.28, 0.15], [-0.3, 0, side * -0.3]);
+                } else { // human
+                    addMesh(armGroup, new THREE.CylinderGeometry(0.38, 0.32, armLen, 16), mArms, [0, -armLen/2 + 0.15, 0]);
+                    addMesh(armGroup, new THREE.SphereGeometry(0.36, 16, 12), mArms, [0, -armLen + 0.12, 0]);
+                }
+
+                const itemType = side === -1 ? charState.rightHandItem : charState.leftHandItem;
+                buildHeldItem(armGroup, itemType, mItems, mBack, [0, -armLen + 0.12, 0.18]);
+            });
+
+            currentY += (bodyH * bScale) - 0.15;
+
+            // 6. NECK & HEAD
+            addMesh(characterGroup, new THREE.CylinderGeometry(0.68, 0.78, 0.75, 16), mArms, [0, currentY + 0.15, 0]);
+            currentY += 0.25;
+
+            const headGroup = new THREE.Group();
+            headGroup.position.set(0, currentY, 0);
+            const hScale = charState.headScale;
+            headGroup.scale.set(hScale, hScale, hScale);
+            characterGroup.add(headGroup);
+
+            let faceZ = 0.96;
+
+            if (charState.headShape === 'cube') {
+                addMesh(headGroup, new THREE.BoxGeometry(2.1, 2.0, 2.0), mHead, [0, 1.0, 0]);
+                faceZ = 0.96;
+            } else if (charState.headShape === 'sphere') {
+                addMesh(headGroup, new THREE.SphereGeometry(1.18, 24, 20), mHead, [0, 1.05, 0]);
+                faceZ = 1.05;
+            } else if (charState.headShape === 'cylinder') {
+                addMesh(headGroup, new THREE.CylinderGeometry(1.05, 1.05, 2.0, 24), mHead, [0, 1.0, 0]);
+                faceZ = 0.98;
+            } else if (charState.headShape === 'tv') {
+                addMesh(headGroup, new THREE.BoxGeometry(2.4, 1.8, 1.7), mHead, [0, 0.95, 0]);
+                addMesh(headGroup, new THREE.BoxGeometry(1.9, 1.35, 0.22), mArms, [0, 0.95, 0.8]);
+                faceZ = 0.88;
+            } else if (charState.headShape === 'blob') {
+                addMesh(headGroup, new THREE.SphereGeometry(1.25, 24, 20), mHead, [0, 0.85, 0], [0, 0, 0], [1.15, 0.85, 1.05]);
+                addMesh(headGroup, new THREE.SphereGeometry(0.88, 20, 16), mHead, [0, 1.5, -0.05]);
+                faceZ = 1.1;
+            } else if (charState.headShape === 'dino') {
+                addMesh(headGroup, new THREE.BoxGeometry(1.9, 1.85, 1.8), mHead, [0, 1.0, -0.1]);
+                addMesh(headGroup, new THREE.BoxGeometry(1.5, 1.05, 1.25), mHead, [0, 0.65, 0.85]);
+                faceZ = 0.78;
+            }
+
+            // 7. FACIAL FEATURES (All deeply seated into face geometry)
+            const eyeY = 1.18;
+            if (charState.eyesStyle === 'round') {
+                [-0.42, 0.42].forEach(ex => {
+                    addMesh(headGroup, new THREE.SphereGeometry(0.24, 16, 12), mFace, [ex, eyeY, faceZ - 0.02]);
+                });
+            } else if (charState.eyesStyle === 'blocky') {
+                [-0.42, 0.42].forEach(ex => {
+                    addMesh(headGroup, new THREE.BoxGeometry(0.42, 0.28, 0.25), mFace, [ex, eyeY, faceZ]);
+                });
+            } else if (charState.eyesStyle === 'visor') {
+                addMesh(headGroup, new THREE.BoxGeometry(1.45, 0.38, 0.28), mFace, [0, eyeY, faceZ + 0.02]);
+            } else if (charState.eyesStyle === 'cyclops') {
+                addMesh(headGroup, new THREE.CylinderGeometry(0.45, 0.45, 0.28, 20), mFace, [0, eyeY + 0.05, faceZ + 0.02], [Math.PI/2, 0, 0]);
+                addMesh(headGroup, new THREE.SphereGeometry(0.22, 16, 12), mHat, [0, eyeY + 0.05, faceZ + 0.14]);
+            } else if (charState.eyesStyle === 'star') {
+                [-0.42, 0.42].forEach(ex => {
+                    addMesh(headGroup, new THREE.OctahedronGeometry(0.28, 0), mFace, [ex, eyeY, faceZ + 0.04]);
+                });
+            } else if (charState.eyesStyle === 'threeEyes') {
+                [-0.5, 0.5].forEach(ex => {
+                    addMesh(headGroup, new THREE.SphereGeometry(0.22, 14, 12), mFace, [ex, eyeY - 0.05, faceZ - 0.02]);
+                });
+                addMesh(headGroup, new THREE.SphereGeometry(0.25, 14, 12), mFace, [0, eyeY + 0.28, faceZ - 0.06]);
+            } else if (charState.eyesStyle === 'googly') {
+                addMesh(headGroup, new THREE.SphereGeometry(0.32, 16, 12), mFace, [-0.42, eyeY + 0.08, faceZ]);
+                addMesh(headGroup, new THREE.SphereGeometry(0.2, 16, 12), mFace, [0.42, eyeY - 0.08, faceZ]);
+            }
+
+            // Nose & Snout
+            const noseZ = charState.headShape === 'dino' ? faceZ + 0.62 : faceZ;
+            if (charState.noseStyle === 'button') {
+                addMesh(headGroup, new THREE.SphereGeometry(0.2, 14, 12), mFace, [0, 0.88, noseZ + 0.05]);
+            } else if (charState.noseStyle === 'block') {
+                addMesh(headGroup, new THREE.BoxGeometry(0.32, 0.34, 0.34), mFace, [0, 0.88, noseZ + 0.06]);
+            } else if (charState.noseStyle === 'carrot') {
+                addMesh(headGroup, new THREE.ConeGeometry(0.2, 0.68, 12), mItems, [0, 0.88, noseZ + 0.22], [Math.PI/2, 0, 0]);
+            } else if (charState.noseStyle === 'snout') {
+                addMesh(headGroup, new THREE.CylinderGeometry(0.34, 0.38, 0.36, 18), mHat, [0, 0.86, noseZ + 0.08], [Math.PI/2, 0, 0]);
+                [-0.12, 0.12].forEach(nx => {
+                    addMesh(headGroup, new THREE.SphereGeometry(0.08, 10, 8), mFace, [nx, 0.86, noseZ + 0.24]);
+                });
+            } else if (charState.noseStyle === 'trunk') {
+                addMesh(headGroup, new THREE.CylinderGeometry(0.28, 0.2, 0.7, 14), mHead, [0, 0.82, noseZ + 0.22], [1.1, 0, 0]);
+                addMesh(headGroup, new THREE.SphereGeometry(0.2, 12, 10), mHead, [0, 0.64, noseZ + 0.5]);
+                addMesh(headGroup, new THREE.CylinderGeometry(0.2, 0.24, 0.55, 14), mHead, [0, 0.84, noseZ + 0.6], [0.2, 0, 0]);
+            }
+
+            // Mouth
+            const mouthY = 0.52;
+            const mouthZ = charState.headShape === 'dino' ? faceZ + 0.62 : faceZ;
+            if (charState.mouthStyle === 'smile') {
+                addMesh(headGroup, new THREE.TorusGeometry(0.34, 0.09, 10, 20, Math.PI), mFace, [0, mouthY + 0.14, mouthZ + 0.02], [0, 0, Math.PI]);
+            } else if (charState.mouthStyle === 'grille') {
+                addMesh(headGroup, new THREE.BoxGeometry(0.95, 0.34, 0.22), mFace, [0, mouthY, mouthZ + 0.02]);
+            } else if (charState.mouthStyle === 'blocky') {
+                addMesh(headGroup, new THREE.BoxGeometry(0.75, 0.22, 0.22), mFace, [0, mouthY, mouthZ + 0.02]);
+            } else if (charState.mouthStyle === 'open') {
+                addMesh(headGroup, new THREE.CylinderGeometry(0.24, 0.24, 0.22, 16), mFace, [0, mouthY, mouthZ + 0.02], [Math.PI/2, 0, 0]);
+            } else if (charState.mouthStyle === 'mustache') {
+                addMesh(headGroup, new THREE.BoxGeometry(1.15, 0.24, 0.28), mHat, [0, mouthY + 0.1, mouthZ + 0.06]);
+            } else if (charState.mouthStyle === 'fangs') {
+                addMesh(headGroup, new THREE.BoxGeometry(0.92, 0.2, 0.22), mFace, [0, mouthY + 0.04, mouthZ + 0.02]);
+                [-0.3, 0.3].forEach(fx => {
+                    addMesh(headGroup, new THREE.ConeGeometry(0.12, 0.36, 8), mHat, [fx, mouthY - 0.14, mouthZ + 0.05], [Math.PI, 0, 0]);
+                });
+            }
+
+            // SIDE EARS (All embedded into head sides for single-piece printability)
+            const earX = charState.headShape === 'tv' ? 1.15 : 1.02;
+            const earY = 1.05;
+            if (charState.sideEarsStyle === 'human') {
+                [-earX, earX].forEach(ex => {
+                    addMesh(headGroup, new THREE.SphereGeometry(0.28, 14, 12), mHead, [ex, earY, -0.05], [0, 0, 0], [0.65, 1.25, 0.85]);
+                });
+            } else if (charState.sideEarsStyle === 'elf') {
+                [-1, 1].forEach(dir => {
+                    addMesh(headGroup, new THREE.ConeGeometry(0.24, 0.78, 10), mHead, [dir * (earX + 0.15), earY + 0.12, -0.05], [0, 0, -dir * 1.15]);
+                });
+            } else if (charState.sideEarsStyle === 'cat') {
+                const topEarY = charState.headShape === 'tv' ? 1.85 : 1.92;
+                [-0.68, 0.68].forEach((ex, idx) => {
+                    addMesh(headGroup, new THREE.ConeGeometry(0.36, 0.72, 4), mHead, [ex, topEarY + 0.12, 0], [0, Math.PI/4, idx === 0 ? 0.25 : -0.25]);
+                });
+            } else if (charState.sideEarsStyle === 'dog') {
+                [-1, 1].forEach(dir => {
+                    addMesh(headGroup, new THREE.SphereGeometry(0.32, 14, 12), mHead, [dir * (earX + 0.08), earY - 0.18, 0], [0, 0, dir * 0.22], [0.6, 1.85, 0.95]);
+                });
+            } else if (charState.sideEarsStyle === 'robotDish') {
+                [-1, 1].forEach(dir => {
+                    addMesh(headGroup, new THREE.CylinderGeometry(0.18, 0.18, 0.35, 12), mArms, [dir * earX, earY, 0], [0, 0, Math.PI/2]);
+                    addMesh(headGroup, new THREE.CylinderGeometry(0.45, 0.22, 0.25, 16), mHat, [dir * (earX + 0.2), earY, 0], [0, 0, -dir * Math.PI/2]);
+                });
+            }
+
+            // 8. HAIR, HATS & HORNS (Seated deeply into skull so zero gaps exist)
+            const hatBaseY = charState.headShape === 'tv' ? 1.8 : 1.92;
+
+            // HAIR STYLES
+            if (charState.hairStyle === 'spiky') {
+                addMesh(headGroup, new THREE.SphereGeometry(1.06, 20, 12, 0, Math.PI*2, 0, Math.PI*0.48), mHat, [0, hatBaseY - 0.22, 0]);
+                const spikeCoords = [
+                    [0, hatBaseY + 0.48, 0.2, 0.25, 0],
+                    [-0.45, hatBaseY + 0.4, 0.1, 0.2, 0.38],
+                    [0.45, hatBaseY + 0.4, 0.1, 0.2, -0.38],
+                    [0, hatBaseY + 0.42, -0.35, -0.35, 0],
+                    [-0.42, hatBaseY + 0.34, -0.3, -0.25, 0.35],
+                    [0.42, hatBaseY + 0.34, -0.3, -0.25, -0.35]
+                ];
+                spikeCoords.forEach(([sx, sy, sz, rx, rz]) => {
+                    addMesh(headGroup, new THREE.ConeGeometry(0.28, 0.72, 10), mHat, [sx, sy, sz], [rx, 0, rz]);
+                });
+            } else if (charState.hairStyle === 'afro') {
+                addMesh(headGroup, new THREE.SphereGeometry(1.18, 22, 16), mHat, [0, hatBaseY + 0.05, -0.08], [0, 0, 0], [1.15, 0.85, 1.12]);
+                [[-0.75, 0.1, 0.3], [0.75, 0.1, 0.3], [-0.65, 0.35, -0.4], [0.65, 0.35, -0.4], [0, 0.55, 0.2]].forEach(([px, py, pz]) => {
+                    addMesh(headGroup, new THREE.SphereGeometry(0.45, 14, 12), mHat, [px, hatBaseY + py, pz]);
+                });
+            } else if (charState.hairStyle === 'buns') {
+                addMesh(headGroup, new THREE.SphereGeometry(1.08, 20, 12, 0, Math.PI*2, 0, Math.PI*0.5), mHat, [0, hatBaseY - 0.2, 0]);
+                [-1.12, 1.12].forEach(bx => {
+                    addMesh(headGroup, new THREE.SphereGeometry(0.46, 16, 14), mHat, [bx, hatBaseY - 0.05, -0.05]);
+                });
+            } else if (charState.hairStyle === 'mohawk') {
+                for (let z = -0.65; z <= 0.65; z += 0.32) {
+                    addMesh(headGroup, new THREE.ConeGeometry(0.26, 0.78, 10), mHat, [0, hatBaseY + 0.32, z], [z * 0.25, 0, 0]);
+                }
+            }
+
+            // HATS & TOP ACCESSORIES
+            if (charState.hatStyle === 'antenna') {
+                addMesh(headGroup, new THREE.CylinderGeometry(0.32, 0.38, 0.25, 16), mHat, [0, hatBaseY - 0.05, 0]);
+                addMesh(headGroup, new THREE.CylinderGeometry(0.14, 0.18, 0.85, 12), mHat, [0, hatBaseY + 0.4, 0]);
+                addMesh(headGroup, new THREE.SphereGeometry(0.28, 16, 12), mItems, [0, hatBaseY + 0.86, 0]);
+            } else if (charState.hatStyle === 'crown') {
+                addMesh(headGroup, new THREE.CylinderGeometry(0.85, 0.75, 0.55, 16), mHat, [0, hatBaseY + 0.14, 0]);
+                for (let i = 0; i < 6; i++) {
+                    const angle = (i / 6) * Math.PI * 2;
+                    addMesh(headGroup, new THREE.ConeGeometry(0.22, 0.45, 8), mHat, [Math.cos(angle)*0.68, hatBaseY + 0.52, Math.sin(angle)*0.68]);
+                }
+            } else if (charState.hatStyle === 'cap') {
+                addMesh(headGroup, new THREE.SphereGeometry(1.12, 20, 12, 0, Math.PI*2, 0, Math.PI/2), mHat, [0, hatBaseY - 0.22, 0]);
+                addMesh(headGroup, new THREE.BoxGeometry(1.3, 0.18, 1.0), mHat, [0, hatBaseY - 0.14, 0.85]);
+            } else if (charState.hatStyle === 'ears') {
+                [-0.82, 0.82].forEach(ex => {
+                    addMesh(headGroup, new THREE.CylinderGeometry(0.48, 0.48, 0.28, 20), mHat, [ex, hatBaseY + 0.18, 0], [Math.PI/2, 0, 0]);
+                });
+            } else if (charState.hatStyle === 'helmet') {
+                addMesh(headGroup, new THREE.BoxGeometry(0.34, 0.65, 1.75), mHat, [0, hatBaseY + 0.15, 0]);
+            } else if (charState.hatStyle === 'bunnyEars') {
+                [-0.45, 0.45].forEach((ex, idx) => {
+                    addMesh(headGroup, new THREE.CylinderGeometry(0.22, 0.28, 1.25, 14), mHat, [ex, hatBaseY + 0.42, 0], [0, 0, idx === 0 ? 0.14 : -0.14]);
+                    addMesh(headGroup, new THREE.SphereGeometry(0.22, 12, 10), mHat, [ex + (idx === 0 ? -0.08 : 0.08), hatBaseY + 1.02, 0]);
+                });
+            } else if (charState.hatStyle === 'horns') {
+                [-0.65, 0.65].forEach((ex, idx) => {
+                    const dir = idx === 0 ? -1 : 1;
+                    addMesh(headGroup, new THREE.ConeGeometry(0.28, 0.95, 12), mHat, [ex, hatBaseY + 0.26, 0], [0.2, 0, -dir * 0.48]);
+                });
+            }
+        }
+
+        function buildHeldItem(parent, itemType, mPrimary, mAccent, pos) {
+            if (!itemType || itemType === 'none') return;
+            const g = new THREE.Group();
+            g.position.set(...pos);
+            parent.add(g);
+
+            if (itemType === 'sword') {
+                addMesh(g, new THREE.CylinderGeometry(0.14, 0.14, 0.75, 12), mAccent, [0, 0, 0.15], [Math.PI/2, 0, 0]);
+                addMesh(g, new THREE.BoxGeometry(0.75, 0.22, 0.24), mAccent, [0, 0, 0.42]);
+                addMesh(g, new THREE.BoxGeometry(0.28, 0.16, 1.85), mPrimary, [0, 0, 1.32]);
+            } else if (itemType === 'wand') {
+                addMesh(g, new THREE.CylinderGeometry(0.11, 0.13, 1.45, 12), mAccent, [0, 0, 0.55], [Math.PI/2, 0, 0]);
+                addMesh(g, new THREE.OctahedronGeometry(0.38, 0), mPrimary, [0, 0, 1.3]);
+            } else if (itemType === 'shield') {
+                addMesh(g, new THREE.CylinderGeometry(0.95, 0.95, 0.26, 20), mPrimary, [0, 0, 0.25], [Math.PI/2, 0, 0]);
+                addMesh(g, new THREE.SphereGeometry(0.38, 16, 12), mAccent, [0, 0, 0.34]);
+            } else if (itemType === 'blaster') {
+                addMesh(g, new THREE.BoxGeometry(0.34, 0.44, 1.15), mPrimary, [0, 0.12, 0.42]);
+                addMesh(g, new THREE.CylinderGeometry(0.18, 0.14, 0.45, 12), mAccent, [0, 0.12, 1.02], [Math.PI/2, 0, 0]);
+            } else if (itemType === 'icecream') {
+                addMesh(g, new THREE.ConeGeometry(0.34, 0.95, 16), mAccent, [0, 0.18, 0.15], [Math.PI, 0, 0]);
+                addMesh(g, new THREE.SphereGeometry(0.38, 16, 14), mPrimary, [0, 0.65, 0.15]);
+            } else if (itemType === 'wrench') {
+                addMesh(g, new THREE.BoxGeometry(0.24, 0.2, 1.45), mPrimary, [0, 0, 0.58]);
+                addMesh(g, new THREE.TorusGeometry(0.34, 0.14, 10, 18, Math.PI * 1.35), mPrimary, [0, 0, 1.32], [Math.PI/2, 0, Math.PI*0.8]);
+            }
+        }
+
+        // ==========================================
+        // 4. UI RENDERING & INTERACTIONS
+        // ==========================================
+        function renderUI() {
+            const tabsEl = document.getElementById('category-tabs');
+            tabsEl.innerHTML = CATEGORIES.map(cat => {
+                const isActive = cat.id === activeCategory;
+                return `
+                    <button onclick="selectCategory('${cat.id}')" 
+                        class="toy-btn px-2.5 py-1.5 md:px-3.5 md:py-2 rounded-lg md:rounded-xl font-bold text-xs md:text-sm whitespace-nowrap flex items-center gap-1.5 transition-all
+                        ${isActive ? 'bg-sky-500 text-white shadow-md' : 'bg-white text-slate-600 hover:bg-sky-100'}">
+                        <i class="fa-solid ${cat.icon}"></i>
+                        <span>${cat.label}</span>
+                    </button>
+                `;
+            }).join('');
+
+            const optsEl = document.getElementById('options-container');
+            let html = '';
+
+            if (activeCategory === 'head') {
+                html += makeOptionGrid('Head Shape', 'headShape', [
+                    { value: 'cube', label: 'Block', icon: 'fa-cube' },
+                    { value: 'sphere', label: 'Round', icon: 'fa-circle' },
+                    { value: 'cylinder', label: 'Tin Can', icon: 'fa-database' },
+                    { value: 'tv', label: 'Retro TV', icon: 'fa-tv' },
+                    { value: 'blob', label: 'Alien Blob', icon: 'fa-ghost' },
+                    { value: 'dino', label: 'Dino Snout', icon: 'fa-dragon' }
+                ]);
+                html += makeSlider('Head Size (Chibi Mode!)', 'headScale', 0.75, 1.45, 0.05);
+            } 
+            else if (activeCategory === 'face') {
+                html += makeOptionGrid('Eyes Style', 'eyesStyle', [
+                    { value: 'visor', label: 'Visor', icon: 'fa-glasses' },
+                    { value: 'round', label: 'Round', icon: 'fa-eye' },
+                    { value: 'blocky', label: 'Pixel', icon: 'fa-square' },
+                    { value: 'cyclops', label: 'Cyclops', icon: 'fa-bullseye' },
+                    { value: 'threeEyes', label: '3-Eye Alien', icon: 'fa-radiation' },
+                    { value: 'googly', label: 'Googly', icon: 'fa-face-dizzy' },
+                    { value: 'star', label: 'Star Eyes', icon: 'fa-star' }
+                ]);
+                html += makeOptionGrid('Mouth Style', 'mouthStyle', [
+                    { value: 'smile', label: 'Happy', icon: 'fa-face-smile' },
+                    { value: 'fangs', label: 'Fangs', icon: 'fa-teeth-open' },
+                    { value: 'grille', label: 'Bot Grille', icon: 'fa-bars' },
+                    { value: 'blocky', label: 'Blocky', icon: 'fa-minus' },
+                    { value: 'open', label: 'Surprised', icon: 'fa-face-surprise' },
+                    { value: 'mustache', label: 'Mustache', icon: 'fa-user-tie' }
+                ]);
+                html += makeOptionGrid('Nose & Snout', 'noseStyle', [
+                    { value: 'none', label: 'None', icon: 'fa-ban' },
+                    { value: 'button', label: 'Button', icon: 'fa-circle' },
+                    { value: 'snout', label: 'Pig Snout', icon: 'fa-piggy-bank' },
+                    { value: 'trunk', label: 'Trunk', icon: 'fa-hippo' },
+                    { value: 'carrot', label: 'Pointy', icon: 'fa-carrot' },
+                    { value: 'block', label: 'Block', icon: 'fa-cube' }
+                ]);
+                html += makeOptionGrid('Ears Style', 'sideEarsStyle', [
+                    { value: 'none', label: 'None', icon: 'fa-ban' },
+                    { value: 'human', label: 'Hero Ears', icon: 'fa-ear-listen' },
+                    { value: 'elf', label: 'Elf / Goblin', icon: 'fa-wand-sparkles' },
+                    { value: 'cat', label: 'Cat / Fox', icon: 'fa-cat' },
+                    { value: 'dog', label: 'Floppy Dog', icon: 'fa-dog' },
+                    { value: 'robotDish', label: 'Bot Dishes', icon: 'fa-satellite-dish' }
+                ]);
+            }
+            else if (activeCategory === 'hat') {
+                html += makeOptionGrid('Hair Style', 'hairStyle', [
+                    { value: 'none', label: 'No Hair', icon: 'fa-ban' },
+                    { value: 'spiky', label: 'Spiky', icon: 'fa-bolt' },
+                    { value: 'afro', label: 'Curly Puff', icon: 'fa-cloud' },
+                    { value: 'buns', label: 'Pigtails', icon: 'fa-face-grin-hearts' },
+                    { value: 'mohawk', label: 'Mohawk', icon: 'fa-fire' }
+                ]);
+                html += makeOptionGrid('Hats & Horns', 'hatStyle', [
+                    { value: 'none', label: 'None', icon: 'fa-ban' },
+                    { value: 'horns', label: 'Horns', icon: 'fa-devil' },
+                    { value: 'bunnyEars', label: 'Bunny', icon: 'fa-rabbit' },
+                    { value: 'ears', label: 'Mouse', icon: 'fa-headphones' },
+                    { value: 'crown', label: 'Crown', icon: 'fa-crown' },
+                    { value: 'antenna', label: 'Antenna', icon: 'fa-tower-broadcast' },
+                    { value: 'cap', label: 'Cap', icon: 'fa-hat-cowboy' },
+                    { value: 'helmet', label: 'Space Fin', icon: 'fa-helmet-safety' }
+                ]);
+            }
+            else if (activeCategory === 'body') {
+                html += makeOptionGrid('Body Shape', 'bodyShape', [
+                    { value: 'robot', label: 'Bot Chest', icon: 'fa-robot' },
+                    { value: 'human', label: 'Hero Torso', icon: 'fa-shirt' },
+                    { value: 'blocky', label: 'Blocky', icon: 'fa-cube' },
+                    { value: 'armor', label: 'Mecha Armor', icon: 'fa-shield-halved' },
+                    { value: 'chubby', label: 'Monster Belly', icon: 'fa-circle' }
+                ]);
+                html += makeSlider('Body Size', 'bodyScale', 0.8, 1.3, 0.05);
+            }
+            else if (activeCategory === 'back') {
+                html += makeOptionGrid('Back & Tail Gear', 'backpackStyle', [
+                    { value: 'none', label: 'None', icon: 'fa-ban' },
+                    { value: 'jetpack', label: 'Jetpack', icon: 'fa-rocket' },
+                    { value: 'cape', label: 'Super Cape', icon: 'fa-mask' },
+                    { value: 'wings', label: 'Wings', icon: 'fa-feather-pointed' },
+                    { value: 'shell', label: 'Shell', icon: 'fa-shield' },
+                    { value: 'dinoTail', label: 'Dino Tail', icon: 'fa-dragon' }
+                ]);
+            }
+            else if (activeCategory === 'arms') {
+                html += makeOptionGrid('Arms & Tentacles', 'armsStyle', [
+                    { value: 'claw', label: 'Bot Claws', icon: 'fa-crab' },
+                    { value: 'human', label: 'Hero Hands', icon: 'fa-hand' },
+                    { value: 'blocky', label: 'Block Arms', icon: 'fa-cube' },
+                    { value: 'tube', label: 'Flex Tubes', icon: 'fa-grip-lines-vertical' },
+                    { value: 'tentacles', label: 'Tentacles', icon: 'fa-spaghetti-monster-flying' }
+                ]);
+            }
+            else if (activeCategory === 'items') {
+                const itemChoices = [
+                    { value: 'none', label: 'Empty', icon: 'fa-ban' },
+                    { value: 'sword', label: 'Sword', icon: 'fa-khanda' },
+                    { value: 'wand', label: 'Wand', icon: 'fa-wand-sparkles' },
+                    { value: 'shield', label: 'Shield', icon: 'fa-shield' },
+                    { value: 'blaster', label: 'Ray Gun', icon: 'fa-gun' },
+                    { value: 'icecream', label: 'Ice Cream', icon: 'fa-ice-cream' },
+                    { value: 'wrench', label: 'Wrench', icon: 'fa-wrench' }
+                ];
+                html += makeOptionGrid('Right Hand Holds', 'rightHandItem', itemChoices);
+                html += makeOptionGrid('Left Hand Holds', 'leftHandItem', itemChoices);
+            }
+            else if (activeCategory === 'legs') {
+                html += makeOptionGrid('Legs & Tentacles', 'legsStyle', [
+                    { value: 'blocky', label: 'Block Legs', icon: 'fa-cube' },
+                    { value: 'human', label: 'Hero Legs', icon: 'fa-person' },
+                    { value: 'springs', label: 'Springs', icon: 'fa-bolt' },
+                    { value: 'wheel', label: 'Mega Wheel', icon: 'fa-dharmachakra' },
+                    { value: 'tentacles', label: '6 Tentacles', icon: 'fa-spaghetti-monster-flying' }
+                ]);
+                if (charState.legsStyle !== 'tentacles') {
+                    html += makeOptionGrid('Feet & Paws', 'feetStyle', [
+                        { value: 'boots', label: 'Bot Boots', icon: 'fa-socks' },
+                        { value: 'shoes', label: 'Sneakers', icon: 'fa-shoe-prints' },
+                        { value: 'blocky', label: 'Block Feet', icon: 'fa-square' },
+                        { value: 'flippers', label: 'Flippers', icon: 'fa-water' },
+                        { value: 'paws', label: 'Monster Paws', icon: 'fa-paw' }
+                    ]);
+                }
+            }
+
+            optsEl.innerHTML = html;
+
+            // Render Color Swatches
+            const catObj = CATEGORIES.find(c => c.id === activeCategory);
+            const colorKey = catObj.colorKey;
+            document.getElementById('color-label').innerText = `${catObj.label} Color`;
+            
+            const swatchesEl = document.getElementById('color-swatches');
+            swatchesEl.innerHTML = COLORS.map(c => {
+                const isSelected = charState.colors[colorKey].toLowerCase() === c.hex.toLowerCase();
+                return `
+                    <button onclick="setPartColor('${colorKey}', '${c.hex}')" title="${c.name}"
+                        class="w-7 h-7 md:w-9 md:h-9 rounded-full shrink-0 border-2 transition-transform ${isSelected ? 'scale-110 border-slate-900 ring-2 ring-sky-400' : 'border-white shadow'}"
+                        style="background-color: ${c.hex};">
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function makeOptionGrid(title, stateProp, options) {
+            return `
+                <div>
+                    <h3 class="text-xs md:text-sm font-bold text-slate-700 mb-1.5 md:mb-2">${title}</h3>
+                    <div class="grid grid-cols-4 sm:grid-cols-3 gap-1.5 md:gap-2.5">
+                        ${options.map(opt => {
+                            const active = charState[stateProp] === opt.value;
+                            return `
+                                <button onclick="updateState('${stateProp}', '${opt.value}')"
+                                    class="toy-btn py-1.5 px-1 md:p-3 rounded-xl md:rounded-2xl border-2 flex flex-col items-center justify-center gap-1 md:gap-1.5 text-center transition-all
+                                    ${active ? 'bg-amber-100 border-amber-400 text-amber-900 shadow-sm font-bold' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-sky-50 hover:border-sky-200 font-medium'}">
+                                    <i class="fa-solid ${opt.icon} text-base md:text-2xl ${active ? 'text-amber-500' : 'text-slate-400'}"></i>
+                                    <span class="text-[10px] md:text-xs leading-tight truncate w-full">${opt.label}</span>
+                                </button>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function makeSlider(title, stateProp, min, max, step) {
+            const val = charState[stateProp];
+            return `
+                <div class="bg-sky-50 p-2.5 md:p-3.5 rounded-xl md:rounded-2xl border border-sky-200">
+                    <div class="flex justify-between text-xs md:text-sm font-bold text-sky-900 mb-1.5">
+                        <span>${title}</span>
+                        <span id="slider-label-${stateProp}">${Math.round(val * 100)}%</span>
+                    </div>
+                    <input type="range" min="${min}" max="${max}" step="${step}" value="${val}"
+                        oninput="updateSlider('${stateProp}', parseFloat(this.value))"
+                        class="w-full accent-amber-500 h-3 bg-sky-200 rounded-lg cursor-pointer touch-pan-x">
+                </div>
+            `;
+        }
+
+        // ==========================================
+        // 5. STATE MUTATORS & RANDOMIZER
+        // ==========================================
+        function updateMakerName(val) {
+            charState.makerName = val.trim();
+            const bar = document.getElementById('maker-bar');
+            const badge = document.getElementById('maker-badge');
+            if (charState.makerName) {
+                badge.textContent = `Maker: ${charState.makerName}`;
+                bar.classList.remove('hidden');
+                bar.classList.add('flex');
+            } else {
+                bar.classList.add('hidden');
+                bar.classList.remove('flex');
+            }
+        }
+
+        function selectCategory(catId) {
+            activeCategory = catId;
+            renderUI();
+        }
+
+        function updateState(prop, val) {
+            charState[prop] = val;
+            rebuildCharacter();
+            renderUI();
+        }
+
+        // Updates 3D scale & text label smoothly without re-rendering DOM (prevents drag interruption)
+        function updateSlider(prop, val) {
+            charState[prop] = val;
+            const labelEl = document.getElementById(`slider-label-${prop}`);
+            if (labelEl) {
+                labelEl.textContent = `${Math.round(val * 100)}%`;
+            }
+            rebuildCharacter();
+        }
+
+        function setPartColor(zone, hex) {
+            charState.colors[zone] = hex;
+            rebuildCharacter();
+            renderUI();
+        }
+
+        function toggleBase() {
+            charState.includeBase = !charState.includeBase;
+            const btn = document.getElementById('btn-base');
+            if (charState.includeBase) {
+                btn.classList.remove('bg-slate-400', 'shadow-[0_3px_0_#475569]', 'md:shadow-[0_4px_0_#475569]');
+                btn.classList.add('bg-emerald-500', 'shadow-[0_3px_0_#065f46]', 'md:shadow-[0_4px_0_#065f46]');
+                btn.innerHTML = '<i class="fa-solid fa-circle-dot"></i><span class="hidden sm:inline">Base: ON</span>';
+            } else {
+                btn.classList.remove('bg-emerald-500', 'shadow-[0_3px_0_#065f46]', 'md:shadow-[0_4px_0_#065f46]');
+                btn.classList.add('bg-slate-400', 'shadow-[0_3px_0_#475569]', 'md:shadow-[0_4px_0_#475569]');
+                btn.innerHTML = '<i class="fa-regular fa-circle"></i><span class="hidden sm:inline">Base: OFF</span>';
+            }
+            rebuildCharacter();
+        }
+
+        function resetToDummy() {
+            Object.assign(charState, {
+                headScale: 1.0,
+                bodyScale: 1.0,
+                headShape: 'sphere',
+                eyesStyle: 'round',
+                mouthStyle: 'smile',
+                noseStyle: 'none',
+                sideEarsStyle: 'none',
+                hairStyle: 'none',
+                hatStyle: 'none',
+                bodyShape: 'human',
+                backpackStyle: 'none',
+                armsStyle: 'human',
+                rightHandItem: 'none',
+                leftHandItem: 'none',
+                legsStyle: 'human',
+                feetStyle: 'shoes',
+                colors: {
+                    head: '#e2e8f0',
+                    face: '#334155',
+                    hat: '#facc15',
+                    body: '#cbd5e1',
+                    backpack: '#94a3b8',
+                    arms: '#e2e8f0',
+                    items: '#facc15',
+                    legs: '#94a3b8',
+                    feet: '#64748b',
+                    base: '#94a3b8'
+                }
+            });
+            rebuildCharacter();
+            renderUI();
+        }
+
+        function randomizeCharacter() {
+            const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+            const randColor = () => pick(COLORS).hex;
+
+            charState.headShape = pick(['cube', 'sphere', 'cylinder', 'tv', 'blob', 'dino']);
+            charState.eyesStyle = pick(['round', 'blocky', 'visor', 'cyclops', 'star', 'threeEyes', 'googly']);
+            charState.mouthStyle = pick(['smile', 'grille', 'blocky', 'open', 'mustache', 'fangs']);
+            charState.noseStyle = pick(['none', 'button', 'block', 'carrot', 'snout', 'trunk']);
+            charState.sideEarsStyle = pick(['none', 'human', 'elf', 'cat', 'dog', 'robotDish']);
+            charState.hairStyle = pick(['none', 'spiky', 'afro', 'buns', 'mohawk']);
+            charState.hatStyle = pick(['none', 'antenna', 'crown', 'cap', 'ears', 'helmet', 'bunnyEars', 'horns']);
+            charState.bodyShape = pick(['robot', 'human', 'blocky', 'armor', 'chubby']);
+            charState.backpackStyle = pick(['none', 'jetpack', 'cape', 'wings', 'shell', 'dinoTail']);
+            charState.armsStyle = pick(['human', 'blocky', 'claw', 'tube', 'tentacles']);
+            charState.rightHandItem = pick(['none', 'sword', 'wand', 'shield', 'blaster', 'icecream', 'wrench']);
+            charState.leftHandItem = pick(['none', 'sword', 'wand', 'shield', 'blaster', 'icecream', 'wrench']);
+            charState.legsStyle = pick(['human', 'blocky', 'wheel', 'springs', 'tentacles']);
+            charState.feetStyle = pick(['shoes', 'blocky', 'boots', 'flippers', 'paws']);
+            charState.headScale = parseFloat((0.85 + Math.random() * 0.45).toFixed(2));
+            charState.bodyScale = parseFloat((0.9 + Math.random() * 0.25).toFixed(2));
+
+            Object.keys(charState.colors).forEach(k => {
+                if (k !== 'base') charState.colors[k] = randColor();
+            });
+
+            rebuildCharacter();
+            renderUI();
+        }
+
+        // ==========================================
+        // 6. FINISH MODAL, STL GENERATION & QUEUE
+        // ==========================================
+        function openFinishModal() {
+            const modal = document.getElementById('finish-modal');
+            const modalNameInput = document.getElementById('modal-maker-name');
+            const modalCharInput = document.getElementById('modal-char-name');
+            const errorMsg = document.getElementById('name-error-msg');
+            const feedback = document.getElementById('modal-feedback');
+
+            modalNameInput.value = charState.makerName;
+            modalCharInput.value = charState.characterName;
+            errorMsg.classList.add('hidden');
+            feedback.classList.add('hidden');
+            document.getElementById('queue-count').textContent = localSubmissionQueue.length;
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('finish-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function validateMakerName() {
+            const modalNameInput = document.getElementById('modal-maker-name');
+            const errorMsg = document.getElementById('name-error-msg');
+            const name = modalNameInput.value.trim();
+
+            if (!name) {
+                errorMsg.classList.remove('hidden');
+                modalNameInput.classList.add('border-rose-500');
+                modalNameInput.focus();
+                return null;
+            }
+
+            errorMsg.classList.add('hidden');
+            modalNameInput.classList.remove('border-rose-500');
+            charState.makerName = name;
+            charState.characterName = document.getElementById('modal-char-name').value.trim();
+
+            // Sync top bar input
+            document.getElementById('maker-name-input').value = name;
+            updateMakerName(name);
+            return name;
+        }
+
+        function sanitizeFilename(str) {
+            return str.toLowerCase().replace(/[^a-z0-9_-]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+        }
+
+        function generateSTLDataView() {
+            const exporter = new THREE.STLExporter();
+            const exportClone = characterGroup.clone();
+
+            // Convert Three.js Y-up to 3D Slicer Z-up & scale to ~75mm figurine height
+            exportClone.rotation.x = Math.PI / 2;
+            exportClone.scale.set(10, 10, 10);
+            exportClone.updateMatrixWorld(true);
+
+            return exporter.parse(exportClone, { binary: true });
+        }
+
+        function handleExportSTL() {
+            const maker = validateMakerName();
+            if (!maker) return;
+
+            const stlDataView = generateSTLDataView();
+            const blob = new Blob([stlDataView], { type: 'application/octet-stream' });
+
+            const safeMaker = sanitizeFilename(maker) || 'maker';
+            const safeChar = sanitizeFilename(charState.characterName || 'character');
+            const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+            const filename = `${safeMaker}_${safeChar}_${timestamp}.stl`;
+
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.click();
+            URL.revokeObjectURL(link.href);
+
+            const feedback = document.getElementById('modal-feedback');
+            feedback.innerHTML = `<i class="fa-solid fa-check-circle mr-1"></i> Downloaded <strong>${filename}</strong>! Ready for your 3D slicer.`;
+            feedback.classList.remove('hidden');
+        }
+
+        function handleSaveToQueue() {
+            const maker = validateMakerName();
+            if (!maker) return;
+
+            const stlDataView = generateSTLDataView();
+            renderer.render(scene, camera);
+            const thumbnailDataUrl = renderer.domElement.toDataURL('image/png');
+
+            const submission = {
+                id: Date.now(),
+                makerName: maker,
+                characterName: charState.characterName || 'Untitled Creature',
+                createdAt: new Date().toISOString(),
+                stlBytes: stlDataView.byteLength,
+                stlBuffer: stlDataView,
+                thumbnail: thumbnailDataUrl,
+                recipe: JSON.parse(JSON.stringify(charState))
+            };
+
+            localSubmissionQueue.push(submission);
+            document.getElementById('queue-count').textContent = localSubmissionQueue.length;
+
+            const feedback = document.getElementById('modal-feedback');
+            feedback.innerHTML = `<i class="fa-solid fa-party-horn mr-1"></i> Awesome job, <strong>${maker}</strong>! Saved <em>"${submission.characterName}"</em> to the workshop queue.`;
+            feedback.classList.remove('hidden');
+        }
+
+        // ==========================================
+        // 7. ANIMATION LOOP & BOOTSTRAP
+        // ==========================================
+        function animate() {
+            requestAnimationFrame(animate);
+            if (controls) controls.update();
+            if (renderer && scene && camera) renderer.render(scene, camera);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initThree();
+            rebuildCharacter();
+            renderUI();
+            animate();
+        });
+    </script>
+</body>
+</html>

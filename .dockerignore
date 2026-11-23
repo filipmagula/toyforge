@@ -1,0 +1,11 @@
+**/node_modules
+**/dist
+data
+deploy/data
+deploy/.env
+.git
+.superpowers
+inputs
+**/test-results
+**/playwright-report
+.DS_Store

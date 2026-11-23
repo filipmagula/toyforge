@@ -1,0 +1,36 @@
+name: toyforge
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: toyforge:latest
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      PORT: "3000"
+      DATA_DIR: /data
+      WEB_DIST: /app/web
+      # nginx on the host reaches the container through this network's gateway;
+      # trust X-Forwarded-For only from there so rate limits see real client IPs.
+      TRUST_PROXY: "loopback,172.31.250.0/24"
+    ports:
+      - "127.0.0.1:${HOST_PORT:-3000}:3000"
+    volumes:
+      - ./data:/data
+    networks:
+      - toyforge
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  toyforge:
+    ipam:
+      config:
+        - subnet: 172.31.250.0/24
