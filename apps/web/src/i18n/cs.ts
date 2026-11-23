@@ -150,7 +150,7 @@ export const cs: Messages = {
   'finish.send': 'Poslat do třídy',
   'finish.sendTo': 'Poslat do třídy {code}',
   'finish.download': 'Stáhnout 3D soubor (.STL)',
-  'finish.back': '← Zpět k tvoření',
+  'finish.back': 'Zpět k tvoření',
   'finish.sending': 'Posílám…',
   'finish.sent': 'Skvělá práce, {maker}! „{character}“ letí k učiteli.',
   'finish.downloaded': 'Staženo: {file}! Můžeš ho otevřít ve sliceru.',

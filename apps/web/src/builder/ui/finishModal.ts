@@ -161,7 +161,7 @@ export function createFinishModal(deps: Deps) {
       feedback ? h('div', { class: `border rounded-xl p-2.5 text-xs font-medium mb-3 ${toneCls[feedback.tone]}`, role: 'status' }, feedback.text) : null,
       pending.length ? h('p', { class: 'text-xs font-bold text-amber-600 mb-3 flex items-center justify-center gap-1' }, icon('CloudOff', 'w-4 h-4'), t('finish.pending', { count: pending.length })) : null,
       rejectedList,
-      h('button', { type: 'button', class: 'mt-2 text-slate-400 hover:text-slate-600 font-bold text-xs py-1', onclick: close }, t('finish.back')),
+      h('button', { type: 'button', class: 'mt-2 inline-flex items-center gap-1 text-slate-400 hover:text-slate-600 font-bold text-xs py-1', onclick: close }, icon('ChevronLeft', 'w-4 h-4'), t('finish.back')),
     );
 
     clear(overlay);

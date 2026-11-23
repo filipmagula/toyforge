@@ -152,7 +152,7 @@ export const en = {
   'finish.send': 'Send to my class',
   'finish.sendTo': 'Send to class {code}',
   'finish.download': 'Download 3D file (.STL)',
-  'finish.back': '← Back to editor',
+  'finish.back': 'Back to editor',
   'finish.sending': 'Sending…',
   'finish.sent': 'Awesome job, {maker}! “{character}” is on its way to your teacher.',
   'finish.downloaded': 'Downloaded {file}! Ready for your 3D slicer.',

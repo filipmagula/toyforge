@@ -107,13 +107,13 @@ The prototype (`inputs/3d_kid_character_maker_stl_exporter.html`) is the functio
 - 24 px slider thumbs; slider input updates the 3D scene and label **without re-rendering the panel DOM** (prevents pointer-capture loss).
 - The complete part library, colour palette (12 named colours), colour zones, and printability rules in §2.3 of the v2.0 draft (head 75–145%, body 80–130%, base pedestal, joint overlap, solid cores).
 - Blank / Mix! / Base ON-OFF, the *Finish & 3D Print!* modal.
-- Fredoka font, playful "toy button" styling.
+- Rounded, kid-friendly font (Nunito — replaces the prototype's Fredoka, which lacks č/ř/ě/ů/ď/ť/ň and ą/ć/ę/ń/ś/ź/ż; a test checks glyph coverage), playful "toy button" styling.
 
 ### 6.2 Port requirements
 - **Vite + TypeScript**, ES modules. Suggested split: `state/recipe.ts`, `scene/setup.ts`, `parts/*.ts` (one module per category), `export/stl.ts`, `ui/panel.ts`, `ui/finish-modal.ts`, `net/submit.ts`, `net/queue.ts`.
 - **Three.js current release** installed from npm and bundled (OrbitControls and STLExporter from `three/examples/jsm`). Note: r128 → current changes colour management and light intensity units; re-tune lights/materials so the look matches the prototype.
 - Dispose geometries/materials when rebuilding the character (prototype creates new materials on every rebuild, including during slider drags).
-- **No runtime CDNs.** Tailwind compiled at build time; Fredoka font self-hosted; icons bundled (replace Font Awesome — the prototype uses icons such as `fa-eyes`/`fa-party-horn` that are not in the free set — with a bundled free set, e.g. Lucide, or inline SVG).
+- **No runtime CDNs.** Tailwind compiled at build time; Nunito font self-hosted; icons bundled (replace Font Awesome — the prototype uses icons such as `fa-eyes`/`fa-party-horn` that are not in the free set — with a bundled free set, e.g. Lucide, or inline SVG).
 - Recipe (`charState`) becomes a typed, versioned object: `{ version: 1, ...parts, colors }`. Maker/character names are **not** part of the recipe.
 
 ### 6.3 Names — unified limits

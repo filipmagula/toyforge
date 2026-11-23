@@ -150,7 +150,7 @@ export const pl: Messages = {
   'finish.send': 'Wyślij do klasy',
   'finish.sendTo': 'Wyślij do klasy {code}',
   'finish.download': 'Pobierz plik 3D (.STL)',
-  'finish.back': '← Wróć do tworzenia',
+  'finish.back': 'Wróć do tworzenia',
   'finish.sending': 'Wysyłam…',
   'finish.sent': 'Świetna robota, {maker}! „{character}” leci do nauczyciela.',
   'finish.downloaded': 'Pobrano {file}! Gotowe do slicera.',

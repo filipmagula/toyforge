@@ -1,5 +1,6 @@
 import '../styles.css';
 import { h } from '../dom';
+import { icon } from '../icons';
 import { initLang, t, type MessageKey } from '../i18n';
 import { mountLangSwitcher } from '../i18n/switcher';
 
@@ -28,7 +29,7 @@ function render(app: HTMLElement, lang: HTMLElement) {
       h('section', { class: 'space-y-1' },
         h('h2', { class: 'text-lg font-bold text-slate-800' }, t('privacy.contactTitle')),
         h('p', { class: 'text-slate-600' }, before ?? '', h('a', { href: `mailto:${CONTACT}`, class: 'text-sky-600 font-bold underline' }, CONTACT), after ?? '')),
-      h('a', { href: '/', class: 'inline-block font-bold text-sky-600' }, `← ${t('privacy.back')}`)),
+      h('a', { href: '/', class: 'inline-flex items-center gap-1 font-bold text-sky-600' }, icon('ChevronLeft', 'w-4 h-4'), t('privacy.back'))),
   );
 }
 
