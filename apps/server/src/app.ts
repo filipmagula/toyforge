@@ -6,6 +6,7 @@ import type { Config } from './config';
 import { HttpError } from './errors';
 import { classRoutes } from './routes/classes';
 import { teacherRoutes } from './routes/teacher';
+import { submissionRoutes } from './routes/submissions';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -52,6 +53,7 @@ export async function buildApp(config: Config, opts: { now?: () => Date; logger?
   app.setNotFoundHandler((_req, reply) => reply.code(404).send({ error: 'not_found', message: 'Not found.' }));
 
   await app.register(classRoutes);
+  await app.register(submissionRoutes);
   await app.register(teacherRoutes);
   return app;
 }
