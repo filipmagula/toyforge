@@ -6,6 +6,8 @@ export default defineConfig({
   plugins: [tailwindcss()],
   build: {
     target: ['safari16', 'chrome110', 'firefox115'],
+    // CSP is font-src 'self': never inline fonts as data: URIs (the latin-ext subset carries č/ř/ł/ż).
+    assetsInlineLimit: (file: string) => (/\.(woff2?|ttf|otf)$/.test(file) ? false : undefined),
     rollupOptions: {
       input: {
         index: resolve(import.meta.dirname, 'index.html'),

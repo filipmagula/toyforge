@@ -122,3 +122,15 @@ describe('sync', () => {
     expect(changes).toBeGreaterThan(0);
   });
 });
+
+describe('stalled uploads', () => {
+  it('time out and are retried later', async () => {
+    const hang = ((_url: string, init: RequestInit) => new Promise<Response>((_res, rej) => {
+      init.signal?.addEventListener('abort', () => rej(new DOMException('timeout', 'TimeoutError')));
+    })) as unknown as typeof fetch;
+    const started = Date.now();
+    const r = await sendSubmission(sub(), hang, { timeoutMs: 50 });
+    expect(r.kind).toBe('retry');
+    expect(Date.now() - started).toBeLessThan(2000);
+  });
+});

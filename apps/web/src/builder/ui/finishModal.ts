@@ -24,8 +24,10 @@ type Feedback = { tone: 'ok' | 'warn' | 'error'; text: string } | null;
 export function createFinishModal(deps: Deps) {
   let overlay: HTMLElement | null = null;
   let feedback: Feedback = null;
-  let busy = false;
+  let sending = false;
   let characterName = '';
+  // Re-sending the very same model (same recipe, names, class) reuses its id, so the server dedupes it.
+  let lastSend: { key: string; id: string } | null = null;
 
   const close = () => { overlay?.remove(); overlay = null; };
 
@@ -63,12 +65,15 @@ export function createFinishModal(deps: Deps) {
     if (!cls) return;
     const stl = exportStl(deps.scene.current());
     const thumbnail = await (await captureThumbnail(deps.scene)).arrayBuffer();
+    const recipe = structuredClone(deps.getRecipe());
+    const key = JSON.stringify([cls.code, maker, character, recipe]);
+    if (lastSend?.key !== key) lastSend = { key, id: crypto.randomUUID() };
     const s: Submission = {
-      submissionId: crypto.randomUUID(),
+      submissionId: lastSend.id,
       code: cls.code,
       makerName: maker,
       characterName: character,
-      recipe: structuredClone(deps.getRecipe()),
+      recipe,
       stl,
       thumbnail,
       createdAt: new Date().toISOString(),
@@ -100,22 +105,29 @@ export function createFinishModal(deps: Deps) {
     makerInput.addEventListener('input', () => { setPref('makerName', makerInput.value.trim()); deps.onNameChange(makerInput.value.trim()); });
     const errorEl = h('p', { class: 'text-rose-500 text-xs font-bold mt-1 min-h-4', role: 'alert' });
 
-    const act = (fn: (m: string, c: string) => Promise<void> | void) => async () => {
-      if (busy) return;
+    const doDownload = async () => {
       const names = readNames(makerInput, charInput, errorEl);
       if (!names) return;
-      busy = true;
+      download(names.maker, names.character);
+      await render();
+    };
+    // Only sending is exclusive; Download must keep working while an upload hangs.
+    const doSend = async () => {
+      if (sending) return;
+      const names = readNames(makerInput, charInput, errorEl);
+      if (!names) return;
+      sending = true;
       feedback = null;
       await render();
-      try { await fn(names.maker, names.character); } finally { busy = false; await render(); }
+      try { await send(names.maker, names.character); } finally { sending = false; await render(); }
     };
 
     const sendBtn = cls
-      ? h('button', { type: 'button', disabled: busy, class: 'toy-btn w-full bg-gradient-to-r from-emerald-400 to-emerald-600 text-white font-bold py-3 rounded-xl shadow-[0_4px_0_#065f46] flex items-center justify-center gap-2 text-sm md:text-base disabled:opacity-60', onclick: act(send) },
-          icon('Send', 'w-5 h-5'), h('span', {}, busy ? t('finish.sending') : t('finish.sendTo', { code: formatClassCode(cls.code) })))
+      ? h('button', { type: 'button', disabled: sending, class: 'toy-btn w-full bg-gradient-to-r from-emerald-400 to-emerald-600 text-white font-bold py-3 rounded-xl shadow-[0_4px_0_#065f46] flex items-center justify-center gap-2 text-sm md:text-base disabled:opacity-60', onclick: doSend },
+          icon('Send', 'w-5 h-5'), h('span', {}, sending ? t('finish.sending') : t('finish.sendTo', { code: formatClassCode(cls.code) })))
       : h('button', { type: 'button', class: 'toy-btn w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 rounded-xl shadow-[0_4px_0_#065f46] flex items-center justify-center gap-2 text-sm', onclick: async () => { await openClassDialog(deps.classState); await render(); } },
           icon('School', 'w-5 h-5'), h('span', {}, t('finish.send')));
-    const downloadBtn = h('button', { type: 'button', class: `toy-btn w-full bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white font-bold ${cls ? 'py-2.5 text-sm' : 'py-3 text-sm md:text-base'} rounded-xl shadow-[0_4px_0_#c2410c] flex items-center justify-center gap-2`, onclick: act(download) },
+    const downloadBtn = h('button', { type: 'button', class: `toy-btn w-full bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white font-bold ${cls ? 'py-2.5 text-sm' : 'py-3 text-sm md:text-base'} rounded-xl shadow-[0_4px_0_#c2410c] flex items-center justify-center gap-2`, onclick: doDownload },
       icon('Download', 'w-5 h-5'), h('span', {}, t('finish.download')));
 
     const toneCls = { ok: 'bg-emerald-50 border-emerald-200 text-emerald-800', warn: 'bg-amber-50 border-amber-200 text-amber-800', error: 'bg-rose-50 border-rose-200 text-rose-800' };

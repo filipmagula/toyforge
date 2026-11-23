@@ -38,3 +38,12 @@ describe('static serving', () => {
     expect(res.json().error).toBe('not_found');
   });
 });
+
+describe('trailing slashes', () => {
+  it('serves /teacher/ and /privacy/', async () => {
+    ctx = await makeTestApp();
+    await registerStatic(ctx.app, await dist());
+    expect((await ctx.app.inject({ method: 'GET', url: '/teacher/' })).body).toContain('teacher');
+    expect((await ctx.app.inject({ method: 'GET', url: '/privacy/' })).body).toContain('privacy');
+  });
+});

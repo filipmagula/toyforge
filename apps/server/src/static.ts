@@ -10,6 +10,8 @@ export async function registerStatic(app: FastifyInstance, webDist: string) {
       res.header('cache-control', /[\\/]assets[\\/]/.test(path) ? 'public, max-age=31536000, immutable' : 'no-cache');
     },
   });
-  app.get('/teacher', (_req, reply) => reply.sendFile('teacher.html'));
-  app.get('/privacy', (_req, reply) => reply.sendFile('privacy.html'));
+  for (const page of ['teacher', 'privacy']) {
+    app.get(`/${page}`, (_req, reply) => reply.sendFile(`${page}.html`));
+    app.get(`/${page}/`, (_req, reply) => reply.sendFile(`${page}.html`));
+  }
 }

@@ -122,3 +122,23 @@ describe('concurrent duplicate submission', () => {
     expect(existsSync(p.stl)).toBe(true);
   });
 });
+
+describe('resubmission after the class closed', () => {
+  it('still returns 200 with the stored record', async () => {
+    ctx = await makeTestApp();
+    const c = await createClass(ctx.app);
+    const id = randomUUID();
+    expect((await submit(c.code, { submissionId: id })).statusCode).toBe(201);
+    ctx.app.db.prepare('UPDATE classes SET is_open = 0').run();
+    const again = await submit(c.code, { submissionId: id });
+    expect(again.statusCode).toBe(200);
+    expect(again.json().id).toBe(id);
+  });
+  it('still returns 200 when the class became full', async () => {
+    ctx = await makeTestApp({ maxModelsPerClass: 1 });
+    const c = await createClass(ctx.app);
+    const id = randomUUID();
+    await submit(c.code, { submissionId: id });
+    expect((await submit(c.code, { submissionId: id })).statusCode).toBe(200);
+  });
+});

@@ -15,7 +15,10 @@ async function errorCode(res: Response): Promise<ErrorCode> {
   }
 }
 
-export async function sendSubmission(s: Submission, fetchImpl: typeof fetch = fetch): Promise<SendResult> {
+/** Uploads are small (<1 MB); 30 s covers slow school Wi-Fi without leaving a kid waiting on a dead connection. */
+export const UPLOAD_TIMEOUT_MS = 30_000;
+
+export async function sendSubmission(s: Submission, fetchImpl: typeof fetch = fetch, opts: { timeoutMs?: number } = {}): Promise<SendResult> {
   const fd = new FormData();
   fd.set('submissionId', s.submissionId);
   fd.set('makerName', s.makerName);
@@ -25,7 +28,11 @@ export async function sendSubmission(s: Submission, fetchImpl: typeof fetch = fe
   fd.set('thumbnail', new Blob([s.thumbnail], { type: 'image/png' }), 'thumbnail.png');
   let res: Response;
   try {
-    res = await fetchImpl(`/api/classes/${encodeURIComponent(s.code)}/models`, { method: 'POST', body: fd });
+    res = await fetchImpl(`/api/classes/${encodeURIComponent(s.code)}/models`, {
+      method: 'POST',
+      body: fd,
+      signal: AbortSignal.timeout(opts.timeoutMs ?? UPLOAD_TIMEOUT_MS),
+    });
   } catch {
     return { kind: 'retry' };
   }

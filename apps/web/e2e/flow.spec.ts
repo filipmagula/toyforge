@@ -73,3 +73,30 @@ test('Czech UI via ?lang=cs', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Hotovo – tisknout!' })).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('lang', 'cs');
 });
+
+test('download still works while an upload is stalled', async ({ page, context }) => {
+  const { code } = await createClass(page, 'Stall');
+  const kid = await context.newPage();
+  await kid.route('**/api/classes/*/models', () => { /* never answer: simulates a dead Wi-Fi connection */ });
+  await kid.goto(`/?class=${code}&lang=en`);
+  await expect(kid.getByText('Class: Stall')).toBeVisible();
+  await finishAndSend(kid, 'Maya');
+  await expect(kid.getByText('Sending…')).toBeVisible();
+  const download = kid.waitForEvent('download', { timeout: 5_000 });
+  await kid.getByRole('button', { name: 'Download 3D file (.STL)' }).click();
+  expect((await download).suggestedFilename()).toMatch(/^maya_character_\d{8}\.stl$/);
+});
+
+test('tapping Send twice for the same model creates one card', async ({ page, context }) => {
+  const { code, teacherLink } = await createClass(page, 'Twice');
+  const kid = await context.newPage();
+  await kid.goto(`/?class=${code}&lang=en`);
+  await expect(kid.getByText('Class: Twice')).toBeVisible();
+  await finishAndSend(kid, 'Ben');
+  await expect(kid.getByText(/Awesome job, Ben!/)).toBeVisible();
+  await kid.getByRole('button', { name: /Send to class/ }).click();
+  await expect(kid.getByText(/Awesome job, Ben!/)).toBeVisible();
+  await page.goto(teacherLink);
+  await expect(page.getByText('By: Ben')).toBeVisible();
+  await expect(page.locator('[data-model]')).toHaveCount(1);
+});

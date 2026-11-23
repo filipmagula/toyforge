@@ -26,7 +26,6 @@ export async function submissionRoutes(app: FastifyInstance) {
     async (req, reply) => {
       const cls = findActiveClass(app, req.params.code);
       if (!cls) return sendError(reply, 404, 'class_not_found', 'Class not found.');
-      if (!cls.is_open) return sendError(reply, 409, 'class_closed', 'This class is not accepting models.');
 
       const fields: Record<string, string> = {};
       const files: Record<string, Buffer> = {};
@@ -48,6 +47,8 @@ export async function submissionRoutes(app: FastifyInstance) {
         if (existing.class_id !== cls.id) return sendError(reply, 400, 'validation', 'submissionId already used.');
         return reply.code(200).send(view(existing));
       }
+      // Checked after the idempotency lookup: a retry of an already-stored model must still succeed.
+      if (!cls.is_open) return sendError(reply, 409, 'class_closed', 'This class is not accepting models.');
 
       const maker = validateName('maker', fields.makerName ?? '');
       if (!maker.ok) return sendError(reply, 400, 'validation', `makerName: ${maker.error}`);
